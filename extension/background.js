@@ -7,6 +7,8 @@ IMPORTANT: When typing into search boxes, it's often best to press 'Enter' after
 `;
 
 let activeConfig = null;
+let currentAbortController = null;
+let stopRequested = false;
 
 chrome.storage.local.get(['aiConfig'], (result) => {
   if (result.aiConfig) {
@@ -71,21 +73,25 @@ const keyMap = {
 
 const browserTools = {
   browser_navigate: async ({ url }) => {
+    if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
     if (!url.startsWith('http')) url = 'https://' + url;
     await chrome.tabs.update(tab.id, { url });
     await ensureDebuggerAttached(tab.id);
 
     // Fast resolve on DOMContentLoaded
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let isResolved = false;
       let timeoutId;
+      let intervalId;
+
       const cleanup = () => {
         if (isResolved) return;
         isResolved = true;
         chrome.tabs.onUpdated.removeListener(listener);
         if (chrome.webNavigation) chrome.webNavigation.onDOMContentLoaded.removeListener(webNavListener);
         clearTimeout(timeoutId);
+        clearInterval(intervalId);
       };
 
       const listener = (navTabId, changeInfo) => {
@@ -102,11 +108,20 @@ const browserTools = {
       };
       if (chrome.webNavigation) chrome.webNavigation.onDOMContentLoaded.addListener(webNavListener);
 
+      // Stop checker
+      intervalId = setInterval(() => {
+        if (stopRequested) {
+          cleanup();
+          reject(new Error("Stopped"));
+        }
+      }, 100);
+
       timeoutId = setTimeout(() => { cleanup(); resolve("Navigation timeout (but likely loaded)"); }, 8000);
     });
   },
 
   browser_get_elements: async () => {
+    if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
     const elements = await runScript(tab.id, () => {
       const items = [];
@@ -131,6 +146,7 @@ const browserTools = {
   },
 
   browser_trusted_click: async ({ x, y }) => {
+    if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
     await ensureDebuggerAttached(tab.id);
     await chrome.debugger.sendCommand({ tabId: tab.id }, 'Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 });
@@ -139,9 +155,11 @@ const browserTools = {
   },
 
   browser_trusted_type: async ({ text }) => {
+    if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
     await ensureDebuggerAttached(tab.id);
     for (const char of text) {
+      if (stopRequested) throw new Error("Stopped");
       await chrome.debugger.sendCommand({ tabId: tab.id }, 'Input.dispatchKeyEvent', { type: 'keyDown', text: char, unmodifiedText: char });
       await chrome.debugger.sendCommand({ tabId: tab.id }, 'Input.dispatchKeyEvent', { type: 'keyUp' });
     }
@@ -149,6 +167,7 @@ const browserTools = {
   },
 
   browser_trusted_press_key: async ({ key }) => {
+    if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
     await ensureDebuggerAttached(tab.id);
     const keyInfo = keyMap[key] || { key: key, code: key };
@@ -169,7 +188,7 @@ const openAiTools = [
 // -----------------------------------------------------------------------------
 // OpenAI API Client
 // -----------------------------------------------------------------------------
-async function callLLM(messages) {
+async function callLLM(messages, signal) {
   if (!activeConfig || !activeConfig.apiKey) {
     throw new Error("No API key configured. Please click settings (⚙️).");
   }
@@ -177,14 +196,13 @@ async function callLLM(messages) {
   const isAnthropic = activeConfig.provider.toLowerCase().includes('anthropic');
 
   if (isAnthropic) {
-    // Basic Anthropic implementation (simplified for Claude)
     throw new Error("Anthropic support requires Claude API format implementation. Please use OpenAI compatible endpoint for now.");
   }
 
-  // OpenAI format
   const baseUrl = activeConfig.baseUrl || 'https://api.openai.com/v1';
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
+    signal: signal,
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${activeConfig.apiKey}`
@@ -208,27 +226,39 @@ async function callLLM(messages) {
 // -----------------------------------------------------------------------------
 // Autonomous Loop
 // -----------------------------------------------------------------------------
-async function runAgentLoop(userText) {
+async function runAgentLoop(history) {
+  stopRequested = false;
+  currentAbortController = new AbortController();
+
+  // Prepare messages array by prepending the system prompt to the user history
   let messages = [
     { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: userText }
+    ...history
   ];
 
-  for (let i = 0; i < 10; i++) { // Max 10 steps
-    updateChat(`Agent thinking... (Step ${i+1})`);
+  let stepCount = 0;
+
+  while (!stopRequested && stepCount < 100) { // Safety bound 100
+    stepCount++;
+    updateChat(`Agent thinking... (Step ${stepCount})`);
 
     let response;
     try {
-      response = await callLLM(messages);
+      response = await callLLM(messages, currentAbortController.signal);
     } catch (e) {
+      if (e.name === 'AbortError') return { error: 'Stopped' };
       return { error: e.message };
     }
+
+    if (stopRequested) return { error: 'Stopped' };
 
     const responseMessage = response.choices[0].message;
     messages.push(responseMessage);
 
-    if (responseMessage.tool_calls) {
+    if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
       for (const toolCall of responseMessage.tool_calls) {
+        if (stopRequested) break;
+
         const functionName = toolCall.function.name;
         const functionArgs = JSON.parse(toolCall.function.arguments);
 
@@ -243,7 +273,11 @@ async function runAgentLoop(userText) {
             functionResponse = "Tool not found.";
           }
         } catch (err) {
-          functionResponse = `Error executing tool: ${err.message}`;
+          if (err.message === "Stopped") {
+             functionResponse = "Stopped by user.";
+          } else {
+             functionResponse = `Error executing tool: ${err.message}`;
+          }
           console.error(err);
         }
 
@@ -255,12 +289,13 @@ async function runAgentLoop(userText) {
         });
       }
     } else {
-      // Done
+      // Done - No more tool calls
       return { text: responseMessage.content };
     }
   }
 
-  return { text: "Max steps reached. I might not have finished completely." };
+  if (stopRequested) return { error: 'Stopped' };
+  return { text: "Safety limit of 100 steps reached. I've stopped to prevent looping." };
 }
 
 // -----------------------------------------------------------------------------
@@ -268,9 +303,15 @@ async function runAgentLoop(userText) {
 // -----------------------------------------------------------------------------
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'CHAT_REQUEST') {
-    runAgentLoop(request.text).then((res) => {
+    runAgentLoop(request.history).then((res) => {
       sendResponse(res);
     });
     return true; // Keep channel open for async response
+  } else if (request.type === 'STOP_REQUEST') {
+    stopRequested = true;
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+    sendResponse({status: 'stopped'});
   }
 });

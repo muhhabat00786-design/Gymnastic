@@ -4,15 +4,21 @@
   <meta charset="UTF-8">
   <title>AI Assistant</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     :root {
-      --bg: #0f172a;
-      --card-bg: rgba(30, 41, 59, 0.7);
-      --text: #f8fafc;
-      --accent: #38bdf8;
-      --accent-grad: linear-gradient(135deg, #38bdf8, #818cf8);
-      --bot-bg: #1e293b;
-      --user-bg: #3b82f6;
-      --border: rgba(255, 255, 255, 0.1);
+      --bg: #09090b;
+      --panel-bg: rgba(24, 24, 27, 0.7);
+      --card-bg: rgba(39, 39, 42, 0.6);
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --border: rgba(255, 255, 255, 0.08);
+      --bot-bg: #18181b;
+      --user-bg: linear-gradient(135deg, #3b82f6, #6366f1);
     }
 
     body {
@@ -21,72 +27,194 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       background-color: var(--bg);
       color: var(--text);
+      overflow: hidden;
     }
 
+    /* Top Navigation */
     .header {
-      padding: 16px;
+      padding: 16px 20px;
       border-bottom: 1px solid var(--border);
-      background: var(--card-bg);
-      backdrop-filter: blur(10px);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    }
+
+    .menu-btn:hover {
+      color: var(--text);
     }
 
     .title {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 16px;
+      font-weight: 600;
       margin: 0;
-      background: var(--accent-grad);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
     }
 
     .settings-btn {
       background: none;
       border: none;
-      color: #94a3b8;
+      color: var(--text-muted);
       cursor: pointer;
       font-size: 18px;
       padding: 4px;
-      transition: color 0.2s;
+      transition: color 0.2s, transform 0.2s;
     }
 
     .settings-btn:hover {
       color: var(--text);
+      transform: rotate(45deg);
     }
 
+    /* Main Content Area */
+    .main-wrapper {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Sidebar / Chat History */
+    .sidebar {
+      position: absolute;
+      left: -100%;
+      top: 0;
+      bottom: 0;
+      width: 250px;
+      background: rgba(9, 9, 11, 0.95);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border);
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .new-chat-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s, border-color 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .new-chat-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .history-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .history-item:hover {
+      background: var(--card-bg);
+      color: var(--text);
+    }
+
+    .history-item.active {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--accent);
+    }
+
+    /* Overlay */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(2px);
+      z-index: 15;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Chat Area */
     .chat-container {
       flex: 1;
       overflow-y: auto;
-      padding: 16px;
+      padding: 24px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
+      scroll-behavior: smooth;
     }
 
     .message {
       max-width: 85%;
-      padding: 12px 16px;
-      border-radius: 12px;
+      padding: 14px 18px;
+      border-radius: 16px;
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.6;
       word-wrap: break-word;
-      animation: fadeIn 0.3s ease;
+      animation: messageSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes messageSlide {
+      from { opacity: 0; transform: translateY(15px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .message.user {
       align-self: flex-end;
-      background-color: var(--user-bg);
+      background: var(--user-bg);
       color: white;
       border-bottom-right-radius: 4px;
     }
@@ -100,86 +228,145 @@
 
     .message.system {
       align-self: center;
-      background: transparent;
-      color: #94a3b8;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-muted);
       font-size: 12px;
-      font-style: italic;
-      padding: 4px 8px;
+      padding: 6px 12px;
+      animation: fadeIn 0.3s ease;
     }
 
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Input Area */
     .input-area {
-      padding: 16px;
-      background: var(--card-bg);
+      padding: 16px 20px;
+      background: var(--panel-bg);
       border-top: 1px solid var(--border);
       display: flex;
       gap: 12px;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(12px);
       flex-shrink: 0;
+      align-items: flex-end;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      background: var(--bot-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
     }
 
     .input-box {
       flex: 1;
-      background: #1e293b;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 10px 16px;
+      background: transparent;
+      border: none;
+      padding: 14px 16px;
       color: var(--text);
       font-size: 14px;
+      font-family: inherit;
       outline: none;
-      transition: border-color 0.2s;
+      resize: none;
+      max-height: 120px;
+      min-height: 20px;
+      line-height: 1.5;
     }
 
-    .input-box:focus {
-      border-color: var(--accent);
-    }
-
-    .send-btn {
-      background: var(--accent-grad);
-      color: white;
+    /* Dynamic Send/Stop Button */
+    .action-btn {
+      width: 44px;
+      height: 44px;
+      margin: 4px 4px 4px 0;
       border: none;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
       display: flex;
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      transition: transform 0.2s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
 
-    .send-btn:hover {
+    .action-btn.send {
+      background: var(--user-bg);
+      color: white;
+    }
+
+    .action-btn.send:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    }
+
+    .action-btn.stop {
+      background: var(--danger);
+      color: white;
+      animation: pulseStop 2s infinite;
+    }
+
+    .action-btn.stop:hover {
+      background: var(--danger-hover);
       transform: scale(1.05);
     }
 
-    .send-btn:active {
-      transform: scale(0.95);
+    @keyframes pulseStop {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
     }
 
-    .typing-indicator {
-      display: none;
-      align-self: flex-start;
-      background-color: var(--bot-bg);
-      padding: 12px 16px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-      gap: 4px;
+    .icon-send, .icon-stop, .spinner {
+      position: absolute;
+      transition: opacity 0.2s, transform 0.3s;
     }
 
-    .typing-indicator span {
-      width: 6px;
-      height: 6px;
-      background-color: var(--accent);
+    .action-btn.send .icon-send { opacity: 1; transform: scale(1); }
+    .action-btn.send .icon-stop { opacity: 0; transform: scale(0.5); }
+    .action-btn.send .spinner { opacity: 0; }
+
+    .action-btn.stop .icon-send { opacity: 0; transform: scale(0.5) translate(10px, -10px); }
+    .action-btn.stop .icon-stop { opacity: 1; transform: scale(1); }
+    .action-btn.stop .spinner { opacity: 1; }
+
+    /* Circular spinner inside stop button */
+    .spinner {
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out both;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      animation: spin 1s linear infinite;
     }
 
-    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1); }
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
 
   </style>
@@ -187,22 +374,44 @@
 <body>
 
   <div class="header">
-    <h1 class="title">AI Fast Agent</h1>
-    <button class="settings-btn" id="openSettings" title="Settings">⚙️</button>
+    <div class="title-area">
+      <button class="menu-btn" id="menuBtn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <h1 class="title">AI Navigator</h1>
+    </div>
+    <button class="settings-btn" id="openSettings" title="Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
   </div>
 
-  <div class="chat-container" id="chatContainer">
-    <div class="message bot">Hello! I am your ultra-fast AI assistant. I can navigate, click, type, and automate the browser for you. What would you like me to do?</div>
-    <div class="typing-indicator" id="typingIndicator">
-      <span></span><span></span><span></span>
+  <div class="main-wrapper">
+    <div class="sidebar" id="sidebar">
+      <button class="new-chat-btn" id="newChatBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        New Chat
+      </button>
+      <div class="history-list" id="historyList">
+        <!-- History items populated here -->
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="chat-container" id="chatContainer">
+      <div class="message bot">Hello! I'm your autonomous navigator. What can I do for you today?</div>
     </div>
   </div>
 
   <div class="input-area">
-    <input type="text" class="input-box" id="userInput" placeholder="Ask me to do anything..." autocomplete="off">
-    <button class="send-btn" id="sendBtn">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-    </button>
+    <div class="input-wrapper">
+      <textarea class="input-box" id="userInput" placeholder="Ask me to do anything..." rows="1"></textarea>
+      <button class="action-btn send" id="actionBtn">
+        <div class="spinner"></div>
+        <svg class="icon-send" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <svg class="icon-stop" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+      </button>
+    </div>
   </div>
 
   <script src="sidepanel.js"></script>
