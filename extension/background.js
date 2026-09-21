@@ -53,16 +53,18 @@ async function ensureDebuggerAttached(tabId) {
   }
 }
 
-async function runScript(tabId, func, args = []) {
-  const results = await chrome.scripting.executeScript({
-    target: { tabId: tabId },
-    func: func,
-    args: args
+// Helper to evaluate scripts via Chrome DevTools Protocol to bypass CSP
+async function runScriptCDP(tabId, scriptStr) {
+  await ensureDebuggerAttached(tabId);
+  const result = await chrome.debugger.sendCommand({ tabId }, 'Runtime.evaluate', {
+    expression: scriptStr,
+    returnByValue: true,
+    awaitPromise: true
   });
-  if (results && results[0] && results[0].result !== undefined) {
-    return results[0].result;
+  if (result.exceptionDetails) {
+    throw new Error(result.exceptionDetails.exception.description || 'Script execution failed');
   }
-  return null;
+  return result.result.value;
 }
 
 const keyMap = {
@@ -123,7 +125,7 @@ const browserTools = {
   browser_get_elements: async () => {
     if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
-    const elements = await runScript(tab.id, () => {
+    const script = `(() => {
       const items = [];
       const selectors = 'button, a, input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])';
       const els = document.querySelectorAll(selectors);
@@ -133,16 +135,17 @@ const browserTools = {
            items.push({
              tag: el.tagName.toLowerCase(),
              text: (el.innerText || el.value || el.placeholder || el.getAttribute('aria-label') || '').trim().substring(0, 50),
-             selector: `${el.tagName.toLowerCase()}${el.id ? '#'+el.id : ''}${el.getAttribute('class') ? '.'+el.getAttribute('class').split(' ').join('.') : ''}`,
+             selector: \`\${el.tagName.toLowerCase()}\${el.id ? '#'+el.id : ''}\${el.getAttribute('class') ? '.'+el.getAttribute('class').split(' ').join('.') : ''}\`,
              x: rect.left + rect.width / 2,
              y: rect.top + rect.height / 2,
            });
          }
       });
       return items;
-    });
+    })()`;
+    const elements = await runScriptCDP(tab.id, script);
     // Truncate to avoid massive context
-    return JSON.stringify(elements.slice(0, 40));
+    return JSON.stringify((elements || []).slice(0, 40));
   },
 
   browser_trusted_click: async ({ x, y }) => {
@@ -179,7 +182,7 @@ const browserTools = {
   browser_get_page_content: async () => {
     if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
-    const content = await runScript(tab.id, () => document.body.innerText);
+    const content = await runScriptCDP(tab.id, "document.body.innerText");
     // Truncate to a reasonable amount to avoid massive token usage
     return (content || "").substring(0, 10000);
   },
@@ -187,14 +190,12 @@ const browserTools = {
   browser_execute_script: async ({ script }) => {
     if (stopRequested) throw new Error("Stopped");
     let tab = await getActiveTab();
-    const result = await runScript(tab.id, (code) => {
-      try {
-        return eval(code);
-      } catch (e) {
-        return e.toString();
-      }
-    }, [script]);
-    return `Script executed. Result: ${result}`;
+    try {
+       const result = await runScriptCDP(tab.id, script);
+       return `Script executed. Result: ${result}`;
+    } catch (e) {
+       return `Script executed with error. Result: ${e.message}`;
+    }
   }
 };
 
