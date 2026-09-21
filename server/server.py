@@ -343,7 +343,7 @@ def main():
 
     # Run the MCP server in the main thread (stdio)
     try:
-        mcp.run(transport="stdio")
+        mcp.run(transport="stdio", show_banner=False)
     except KeyboardInterrupt:
         logger.info("Shutting down...")
 
