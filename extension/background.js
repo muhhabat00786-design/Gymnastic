@@ -9,6 +9,7 @@ IMPORTANT: When typing into search boxes, it's often best to press 'Enter' after
 let activeConfig = null;
 let currentAbortController = null;
 let stopRequested = false;
+let boundTabId = null;
 
 chrome.storage.local.get(['aiConfig'], (result) => {
   if (result.aiConfig) {
@@ -34,6 +35,15 @@ function updateChat(text) {
 // CDP & Browser Control Functions
 // -----------------------------------------------------------------------------
 async function getActiveTab() {
+  if (boundTabId) {
+    try {
+      const tab = await chrome.tabs.get(boundTabId);
+      if (tab) return tab;
+    } catch (e) {
+      // Tab might have been closed, fallback to current active
+      boundTabId = null;
+    }
+  }
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tabs.length === 0) {
     const allTabs = await chrome.tabs.query({});
@@ -196,11 +206,25 @@ const browserTools = {
     } catch (e) {
        return `Script executed with error. Result: ${e.message}`;
     }
+  },
+
+  browser_list_tabs: async () => {
+    if (stopRequested) throw new Error("Stopped");
+    const tabs = await chrome.tabs.query({});
+    return JSON.stringify(tabs.map(t => ({ id: t.id, title: t.title, url: t.url, active: t.active })));
+  },
+
+  browser_close_tab: async ({ tab_id }) => {
+    if (stopRequested) throw new Error("Stopped");
+    await chrome.tabs.remove(tab_id);
+    return `Closed tab ${tab_id}`;
   }
 };
 
 const openAiTools = [
   { type: "function", function: { name: "browser_navigate", description: "Navigate to a URL", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
+  { type: "function", function: { name: "browser_list_tabs", description: "List all open browser tabs to find their IDs and URLs", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "browser_close_tab", description: "Close a specific browser tab by ID", parameters: { type: "object", properties: { tab_id: { type: "number" } }, required: ["tab_id"] } } },
   { type: "function", function: { name: "browser_get_elements", description: "Get interactive elements on screen (returns JSON with x/y coords)", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "browser_trusted_click", description: "Click at x/y coordinates", parameters: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"] } } },
   { type: "function", function: { name: "browser_trusted_type", description: "Type text (make sure you clicked an input first)", parameters: { type: "object", properties: { text: { type: "string" } }, required: ["text"] } } },
@@ -252,6 +276,14 @@ async function callLLM(messages, signal) {
 async function runAgentLoop(history) {
   stopRequested = false;
   currentAbortController = new AbortController();
+
+  // Bind the agent to the current active tab when the loop starts
+  const startingTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (startingTabs && startingTabs.length > 0) {
+    boundTabId = startingTabs[0].id;
+  } else {
+    boundTabId = null;
+  }
 
   // Prepare messages array by prepending the system prompt to the user history
   let messages = [
