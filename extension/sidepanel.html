@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Assistant</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #09090b;
+      --panel-bg: rgba(24, 24, 27, 0.75);
+      --card-bg: rgba(39, 39, 42, 0.6);
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #8b5cf6; /* neon purple */
+      --accent-hover: #7c3aed;
+      --accent-secondary: #06b6d4; /* cyan */
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --border: rgba(255, 255, 255, 0.08);
+      --bot-bg: rgba(24, 24, 27, 0.85);
+      --user-bg: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+
+      /* Stylish animated background */
+      background: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.1), transparent 40%),
+                  radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.1), transparent 40%);
+      animation: pulseBg 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseBg {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+    }
+
+    /* Top Navigation */
+    .header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 10;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .menu-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: color 0.2s;
+    }
+
+    .menu-btn:hover {
+      color: var(--text);
+    }
+
+    .title {
+      font-size: 17px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--accent-secondary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    .settings-btn:hover {
+      color: var(--text);
+      transform: rotate(45deg);
+    }
+
+    /* Main Content Area */
+    .main-wrapper {
+      display: flex;
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Sidebar / Chat History */
+    .sidebar {
+      position: absolute;
+      left: -100%;
+      top: 0;
+      bottom: 0;
+      width: 260px;
+      background: rgba(9, 9, 11, 0.95);
+      backdrop-filter: blur(30px);
+      border-right: 1px solid var(--border);
+      transition: left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 16px;
+      box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .new-chat-btn {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+      margin-bottom: 20px;
+    }
+
+    .new-chat-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .history-item {
+      padding: 12px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .history-item:hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+    }
+
+    .history-item.active {
+      background: rgba(139, 92, 246, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    /* Overlay */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(3px);
+      z-index: 15;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Chat Area */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 14px 18px;
+      border-radius: 18px;
+      font-size: 14.5px;
+      line-height: 1.6;
+      word-wrap: break-word;
+      animation: messageSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes messageSlide {
+      from { opacity: 0; transform: translateY(15px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--user-bg);
+      color: white;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25);
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background-color: var(--bot-bg);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    .message.system {
+      align-self: center;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-muted);
+      font-size: 12px;
+      padding: 6px 14px;
+      animation: fadeIn 0.3s ease forwards;
+      backdrop-filter: blur(10px);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Advanced Audio-style Typing Indicator */
+    .typing-indicator {
+      display: none;
+      align-self: flex-start;
+      background-color: var(--bot-bg);
+      padding: 14px 18px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+      gap: 4px;
+      align-items: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      height: 20px;
+    }
+
+    .typing-indicator.active {
+      display: flex;
+      animation: messageSlide 0.3s ease forwards;
+    }
+
+    .bar {
+      width: 4px;
+      height: 10px;
+      background: var(--accent-secondary);
+      border-radius: 2px;
+      animation: equalize 1s infinite ease-in-out;
+    }
+
+    .bar:nth-child(1) { animation-delay: -0.4s; background: var(--accent); }
+    .bar:nth-child(2) { animation-delay: -0.2s; background: #6366f1; }
+    .bar:nth-child(3) { animation-delay: 0s; background: var(--accent-secondary); }
+
+    @keyframes equalize {
+      0%, 100% { height: 6px; }
+      50% { height: 18px; }
+    }
+
+    /* Input Area */
+    .input-area {
+      padding: 16px 20px;
+      background: var(--panel-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+      backdrop-filter: blur(20px);
+      flex-shrink: 0;
+      align-items: flex-end;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+      display: flex;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .input-wrapper:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 0 20px rgba(139, 92, 246, 0.2);
+      background: rgba(0,0,0,0.7);
+    }
+
+    .input-box {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 14px 18px;
+      color: var(--text);
+      font-size: 14.5px;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      max-height: 120px;
+      min-height: 20px;
+      line-height: 1.5;
+    }
+
+    /* Dynamic Send/Stop Button */
+    .action-btn {
+      width: 44px;
+      height: 44px;
+      margin: 4px 4px 4px 0;
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-btn.send {
+      background: var(--user-bg);
+      color: white;
+    }
+
+    .action-btn.send:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+    }
+
+    .action-btn.stop {
+      background: var(--danger);
+      color: white;
+      animation: pulseStop 2s infinite;
+    }
+
+    .action-btn.stop:hover {
+      background: var(--danger-hover);
+      transform: scale(1.05);
+    }
+
+    @keyframes pulseStop {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .icon-send, .icon-stop, .btn-spinner {
+      position: absolute;
+      transition: opacity 0.2s, transform 0.3s;
+    }
+
+    .action-btn.send .icon-send { opacity: 1; transform: scale(1); }
+    .action-btn.send .icon-stop { opacity: 0; transform: scale(0.5); }
+    .action-btn.send .btn-spinner { opacity: 0; }
+
+    .action-btn.stop .icon-send { opacity: 0; transform: scale(0.5) translate(10px, -10px); }
+    .action-btn.stop .icon-stop { opacity: 1; transform: scale(1); }
+    .action-btn.stop .btn-spinner { opacity: 1; }
+
+    /* Circular spinner inside stop button */
+    .btn-spinner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      animation: spinbtn 1s linear infinite;
+    }
+
+    @keyframes spinbtn {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="title-area">
+      <button class="menu-btn" id="menuBtn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <h1 class="title">AI Navigator</h1>
+    </div>
+    <button class="settings-btn" id="openSettings" title="Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+  </div>
+
+  <div class="main-wrapper">
+    <div class="sidebar" id="sidebar">
+      <button class="new-chat-btn" id="newChatBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        New Chat
+      </button>
+      <div class="history-list" id="historyList">
+        <!-- History items populated here -->
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <div class="chat-container" id="chatContainer">
+      <div class="message bot">Hello! I'm your autonomous navigator. What can I do for you today?</div>
+
+      <!-- Audio-eq style typing indicator placeholder (moved by JS) -->
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea class="input-box" id="userInput" placeholder="Ask me to do anything..." rows="1"></textarea>
+      <button class="action-btn send" id="actionBtn">
+        <div class="btn-spinner"></div>
+        <svg class="icon-send" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <svg class="icon-stop" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
