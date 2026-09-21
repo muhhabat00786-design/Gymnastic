@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ultra-Fast Chrome Automation</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --text: #f8fafc;
+      --accent: #38bdf8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .status-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .pill {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .pill.connected { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .pill.disconnected { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+
+    .tab-info {
+      font-size: 12px;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 4px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    button {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .setup-section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .setup-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .code-block {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #a7f3d0;
+      margin-bottom: 8px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      width: 100%;
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .copy-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1 class="title">Ultra-Fast Automation</h1>
+  </div>
+
+  <div class="status-panel">
+    <div class="status-row">
+      <span>WebSocket (18822)</span>
+      <span id="ws-status" class="pill disconnected">Offline</span>
+    </div>
+    <div class="status-row">
+      <span>Latency</span>
+      <span id="latency-ms" style="font-family: monospace; color: #94a3b8;">-- ms</span>
+    </div>
+    <div style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px;">
+      <div style="font-size: 12px; font-weight: 600;">Active Tab</div>
+      <div id="active-tab" class="tab-info">Loading...</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="btn-annotate">Toggle Marks</button>
+    <button id="btn-snap">Capture Snap</button>
+    <button id="btn-scroll">Scroll Down</button>
+    <button id="btn-reconnect">Reconnect</button>
+  </div>
+
+  <div class="setup-section">
+    <div class="setup-title">⚙️ IDE & MCP Setup</div>
+    <div class="code-block" id="mcp-config">
+"mcpServers": {
+  "chrome": {
+    "command": "python",
+    "args": ["-m", "server.server"]
+  }
+}
+    </div>
+    <button class="copy-btn" id="btn-copy-config">📋 Copy Configuration</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
