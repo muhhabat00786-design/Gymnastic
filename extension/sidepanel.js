@@ -73,6 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const typingIndicatorHTML = `
+    <div class="typing-indicator active" id="typingIndicator">
+      <div class="bar"></div>
+      <div class="bar"></div>
+      <div class="bar"></div>
+    </div>
+  `;
+
   function renderChat() {
     chatContainer.innerHTML = '';
     chatHistory.forEach(msg => {
@@ -80,14 +88,27 @@ document.addEventListener('DOMContentLoaded', () => {
         addMessageUI(msg.content, msg.role === 'user' ? 'user' : (msg.isSystemInfo ? 'system' : 'bot'));
       }
     });
+    if (isProcessing) {
+       chatContainer.insertAdjacentHTML('beforeend', typingIndicatorHTML);
+    }
     scrollToBottom();
   }
 
   function addMessageUI(text, sender) {
+    // Remove typing indicator if it exists
+    const existingIndicator = document.getElementById('typingIndicator');
+    if (existingIndicator) existingIndicator.remove();
+
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${sender}`;
     msgDiv.textContent = text;
     chatContainer.appendChild(msgDiv);
+
+    // Re-add typing indicator if still processing
+    if (isProcessing) {
+       chatContainer.insertAdjacentHTML('beforeend', typingIndicatorHTML);
+    }
+
     scrollToBottom();
   }
 

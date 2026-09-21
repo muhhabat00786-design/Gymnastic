@@ -16,6 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const testBtn = document.getElementById('testBtn');
   const statusArea = document.getElementById('statusArea');
 
+  // Modal Elements
+  const modelsModal = document.getElementById('modelsModal');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const modelsList = document.getElementById('modelsList');
+  const fetchModelsBtnPreset = document.getElementById('fetchModelsBtnPreset');
+  const fetchModelsBtnCustom = document.getElementById('fetchModelsBtnCustom');
+
   // Provider config defaults
   const providers = {
     openai: {
@@ -108,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function showStatus(msg, isError = false) {
     statusArea.textContent = msg;
     statusArea.className = 'status-area ' + (isError ? 'error' : 'success');
+    statusArea.style.display = 'block';
   }
 
   function getFormConfig() {
@@ -188,5 +196,95 @@ document.addEventListener('DOMContentLoaded', () => {
       testBtn.disabled = false;
     }
   });
+
+  // --- Fetch Models Logic ---
+
+  function openModelsModal() {
+    modelsModal.classList.add('active');
+  }
+
+  function closeModelsModal() {
+    modelsModal.classList.remove('active');
+  }
+
+  closeModalBtn.addEventListener('click', closeModelsModal);
+  modelsModal.addEventListener('click', (e) => {
+    if (e.target === modelsModal) closeModelsModal();
+  });
+
+  async function handleFetchModels() {
+    const config = getFormConfig();
+    if (!config.apiKey || !config.baseUrl) {
+      showStatus("Please enter your API key and Base URL first.", true);
+      return;
+    }
+
+    openModelsModal();
+    modelsList.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px;">Fetching available models...</div>';
+
+    try {
+      const endpoint = `${config.baseUrl}/models`;
+      const res = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${config.apiKey}`
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP Error ${res.status}: ${await res.text()}`);
+      }
+
+      const data = await res.json();
+      const models = data.data || data; // handle different spec implementations
+
+      if (!Array.isArray(models) || models.length === 0) {
+        modelsList.innerHTML = '<div style="text-align: center; color: var(--danger); font-size: 13px;">No models found.</div>';
+        return;
+      }
+
+      modelsList.innerHTML = '';
+
+      models.forEach(model => {
+        const id = model.id || model; // some apis just return strings
+
+        const div = document.createElement('div');
+        div.className = 'model-item';
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'model-item-name';
+        nameSpan.textContent = id;
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.textContent = 'Copy';
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(id).then(() => {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+
+            // Auto paste into the relevant field
+            if (currentTab === 'preset') {
+              modelSelect.value = 'custom...';
+              checkCustomModel();
+              customModelName.value = id;
+            } else {
+              customModel.value = id;
+            }
+          });
+        };
+
+        div.appendChild(nameSpan);
+        div.appendChild(copyBtn);
+        modelsList.appendChild(div);
+      });
+
+    } catch (err) {
+      modelsList.innerHTML = `<div style="text-align: center; color: var(--danger); font-size: 13px; word-break: break-word;">Failed to fetch models: ${err.message}</div>`;
+    }
+  }
+
+  fetchModelsBtnPreset.addEventListener('click', handleFetchModels);
+  fetchModelsBtnCustom.addEventListener('click', handleFetchModels);
 
 });

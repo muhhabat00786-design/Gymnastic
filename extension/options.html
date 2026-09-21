@@ -8,15 +8,16 @@
 
     :root {
       --bg: #09090b;
-      --card-bg: rgba(24, 24, 27, 0.8);
+      --card-bg: rgba(24, 24, 27, 0.85);
       --card-border: rgba(255, 255, 255, 0.1);
       --text: #fafafa;
       --text-muted: #a1a1aa;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
+      --accent: #8b5cf6; /* neon purple */
+      --accent-hover: #7c3aed;
+      --accent-secondary: #06b6d4; /* cyan */
       --success: #10b981;
       --danger: #ef4444;
-      --input-bg: rgba(0, 0, 0, 0.3);
+      --input-bg: rgba(0, 0, 0, 0.4);
     }
 
     body {
@@ -30,16 +31,24 @@
       margin: 0;
       padding: 20px;
       box-sizing: border-box;
-      background-image: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.15), transparent 60%);
+      /* Animated Mesh Gradient Background */
+      background: radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 50%),
+                  radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 50%);
+      animation: pulseBg 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseBg {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
     }
 
     .container {
       background: var(--card-bg);
       padding: 32px;
       border-radius: 20px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 40px rgba(139, 92, 246, 0.1);
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       border: 1px solid var(--card-border);
       backdrop-filter: blur(20px);
     }
@@ -48,20 +57,22 @@
       margin-top: 0;
       margin-bottom: 24px;
       font-size: 24px;
-      font-weight: 600;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent-secondary), var(--accent));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-align: center;
+      letter-spacing: -0.5px;
     }
 
     /* Tabs */
     .tabs {
       display: flex;
       background: rgba(0, 0, 0, 0.3);
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 4px;
       margin-bottom: 24px;
+      border: 1px solid rgba(255,255,255,0.05);
     }
 
     .tab-btn {
@@ -75,18 +86,19 @@
       cursor: pointer;
       font-weight: 500;
       font-size: 14px;
-      transition: all 0.2s;
+      transition: all 0.3s;
     }
 
     .tab-btn.active {
-      background: var(--card-border);
+      background: rgba(139, 92, 246, 0.2);
       color: var(--text);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      border: 1px solid rgba(139, 92, 246, 0.3);
     }
 
     .tab-content {
       display: none;
-      animation: fadeIn 0.3s ease;
+      animation: fadeIn 0.4s ease;
     }
 
     .tab-content.active {
@@ -101,6 +113,7 @@
     /* Forms */
     .form-group {
       margin-bottom: 20px;
+      position: relative;
     }
 
     label {
@@ -121,18 +134,121 @@
       box-sizing: border-box;
       font-size: 14px;
       font-family: inherit;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      transition: all 0.3s;
     }
 
     select option {
-      background: var(--bg);
+      background: #18181b;
       color: var(--text);
     }
 
     input:focus, select:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+    }
+
+    /* Fetch Models Button */
+    .fetch-models-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      background: transparent;
+      border: none;
+      color: var(--accent-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .fetch-models-btn:hover {
+      text-decoration: underline;
+    }
+
+    /* Modal for Models */
+    .models-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .models-modal.active {
+      display: flex;
+    }
+
+    .models-content {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 400px;
+      max-height: 70vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .models-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .models-header h3 { margin: 0; font-size: 16px; }
+
+    .close-modal {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .models-list {
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .model-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+
+    .model-item-name {
+      font-size: 13px;
+      font-family: monospace;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: rgba(139, 92, 246, 0.2);
+      color: var(--accent);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent);
+      color: white;
     }
 
     /* Actions */
@@ -143,14 +259,14 @@
       margin-top: 32px;
     }
 
-    button {
-      padding: 12px;
+    .btn {
+      padding: 14px;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all 0.3s;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -165,22 +281,24 @@
 
     .btn-test:hover {
       background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255,255,255,0.2);
     }
 
     .btn-save {
-      background: linear-gradient(135deg, var(--accent), #6366f1);
+      background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
       color: white;
     }
 
     .btn-save:hover {
-      background: linear-gradient(135deg, var(--accent-hover), #4f46e5);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, var(--accent-hover), #0891b2);
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+      transform: translateY(-1px);
     }
 
     .status-area {
       margin-top: 20px;
       padding: 12px;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 13px;
       text-align: center;
       display: none;
@@ -209,8 +327,8 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    .btn-test.testing .spinner { display: block; }
-    .btn-test.testing .icon { display: none; }
+    .testing .spinner { display: block; }
+    .testing .icon { display: none; }
 
     @keyframes spin {
       to { transform: rotate(360deg); }
@@ -241,18 +359,19 @@
       </div>
 
       <div class="form-group">
+        <label for="presetApiKey">API Key</label>
+        <input type="password" id="presetApiKey" placeholder="Enter your API Key...">
+      </div>
+
+      <div class="form-group">
         <label for="modelSelect">Model</label>
+        <button class="fetch-models-btn" id="fetchModelsBtnPreset">Fetch Models</button>
         <select id="modelSelect">
           <!-- Populated by JS -->
         </select>
         <div style="margin-top: 8px;">
-          <input type="text" id="customModelName" placeholder="Or enter manual model ID..." style="display:none; font-size: 13px; padding: 8px;">
+          <input type="text" id="customModelName" placeholder="Or paste model ID here..." style="display:none; font-size: 13px; padding: 10px;">
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="presetApiKey">API Key</label>
-        <input type="password" id="presetApiKey" placeholder="Enter your API Key...">
       </div>
     </div>
 
@@ -268,20 +387,34 @@
       </div>
       <div class="form-group">
         <label for="customModel">Model Name</label>
+        <button class="fetch-models-btn" id="fetchModelsBtnCustom">Fetch Models</button>
         <input type="text" id="customModel" placeholder="llama3-70b-8192">
       </div>
     </div>
 
     <div class="actions">
-      <button class="btn-test" id="testBtn">
+      <button class="btn btn-test" id="testBtn">
         <span class="icon">🔌</span>
         <div class="spinner"></div>
         <span>Test Connection</span>
       </button>
-      <button class="btn-save" id="saveBtn">💾 Save Config</button>
+      <button class="btn btn-save" id="saveBtn">💾 Save Config</button>
     </div>
 
     <div id="statusArea" class="status-area"></div>
+  </div>
+
+  <!-- Models Modal -->
+  <div class="models-modal" id="modelsModal">
+    <div class="models-content">
+      <div class="models-header">
+        <h3>Available Models</h3>
+        <button class="close-modal" id="closeModalBtn">&times;</button>
+      </div>
+      <div class="models-list" id="modelsList">
+        <div style="text-align: center; color: var(--text-muted); font-size: 13px;">Fetching...</div>
+      </div>
+    </div>
   </div>
 
   <script src="options.js"></script>
