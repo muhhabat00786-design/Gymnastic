@@ -4,105 +4,286 @@
   <meta charset="UTF-8">
   <title>AI Fast Agent Settings</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f8fafc;
-      --accent: #8b5cf6;
-      --accent-hover: #7c3aed;
-      --border: #334155;
+      --bg: #09090b;
+      --card-bg: rgba(24, 24, 27, 0.8);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --input-bg: rgba(0, 0, 0, 0.3);
     }
+
     body {
       background-color: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+      background-image: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.15), transparent 60%);
     }
+
     .container {
-      background: var(--card);
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-      width: 400px;
-      border: 1px solid var(--border);
+      background: var(--card-bg);
+      padding: 32px;
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      width: 100%;
+      max-width: 480px;
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(20px);
     }
+
     h2 {
       margin-top: 0;
-      color: var(--accent);
+      margin-bottom: 24px;
+      font-size: 24px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
     }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--card-border);
+      color: var(--text);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Forms */
     .form-group {
       margin-bottom: 20px;
     }
+
     label {
       display: block;
       margin-bottom: 8px;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
     }
-    input[type="text"], input[type="password"] {
+
+    input, select {
       width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg);
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--card-border);
+      background: var(--input-bg);
       color: var(--text);
       box-sizing: border-box;
       font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    input:focus {
+
+    select option {
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
     }
+
+    /* Actions */
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 32px;
+    }
+
     button {
-      width: 100%;
       padding: 12px;
       border: none;
-      border-radius: 6px;
-      background: var(--accent);
-      color: white;
-      font-size: 16px;
+      border-radius: 10px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
     }
-    button:hover {
-      background: var(--accent-hover);
+
+    .btn-test {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid var(--card-border);
     }
-    .status {
-      margin-top: 15px;
+
+    .btn-test:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-save {
+      background: linear-gradient(135deg, var(--accent), #6366f1);
+      color: white;
+    }
+
+    .btn-save:hover {
+      background: linear-gradient(135deg, var(--accent-hover), #4f46e5);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .status-area {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
       text-align: center;
-      font-size: 14px;
-      color: #10b981;
-      min-height: 20px;
+      display: none;
     }
+
+    .status-area.success {
+      display: block;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-area.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .btn-test.testing .spinner { display: block; }
+    .btn-test.testing .icon { display: none; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
   </style>
 </head>
 <body>
+
   <div class="container">
-    <h2>⚙️ API Settings</h2>
-    <div class="form-group">
-      <label for="provider">Provider (e.g. openai, anthropic)</label>
-      <input type="text" id="provider" placeholder="openai" value="openai">
+    <h2>⚙️ Connection Setup</h2>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="preset">Pre-configured</button>
+      <button class="tab-btn" data-tab="custom">Custom Endpoint</button>
     </div>
-    <div class="form-group">
-      <label for="apiKey">API Key</label>
-      <input type="password" id="apiKey" placeholder="sk-...">
+
+    <!-- PRESET TAB -->
+    <div id="preset-tab" class="tab-content active">
+      <div class="form-group">
+        <label for="providerSelect">Provider</label>
+        <select id="providerSelect">
+          <option value="openai">OpenAI (Paid)</option>
+          <option value="gemini">Google AI Studio / Gemini (Free/Paid)</option>
+          <option value="groq">Groq (Free/Fast)</option>
+          <option value="openrouter">OpenRouter (Multiple Models)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="modelSelect">Model</label>
+        <select id="modelSelect">
+          <!-- Populated by JS -->
+        </select>
+        <div style="margin-top: 8px;">
+          <input type="text" id="customModelName" placeholder="Or enter manual model ID..." style="display:none; font-size: 13px; padding: 8px;">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="presetApiKey">API Key</label>
+        <input type="password" id="presetApiKey" placeholder="Enter your API Key...">
+      </div>
     </div>
-    <div class="form-group">
-      <label for="model">Model Name</label>
-      <input type="text" id="model" placeholder="gpt-4o" value="gpt-4o">
+
+    <!-- CUSTOM TAB -->
+    <div id="custom-tab" class="tab-content">
+      <div class="form-group">
+        <label for="customBaseUrl">Base URL (OpenAI Compatible)</label>
+        <input type="text" id="customBaseUrl" placeholder="https://api.yourprovider.com/v1">
+      </div>
+      <div class="form-group">
+        <label for="customApiKey">API Key</label>
+        <input type="password" id="customApiKey" placeholder="sk-...">
+      </div>
+      <div class="form-group">
+        <label for="customModel">Model Name</label>
+        <input type="text" id="customModel" placeholder="llama3-70b-8192">
+      </div>
     </div>
-    <div class="form-group">
-      <label for="baseUrl">Base URL (optional)</label>
-      <input type="text" id="baseUrl" placeholder="https://api.openai.com/v1">
+
+    <div class="actions">
+      <button class="btn-test" id="testBtn">
+        <span class="icon">🔌</span>
+        <div class="spinner"></div>
+        <span>Test Connection</span>
+      </button>
+      <button class="btn-save" id="saveBtn">💾 Save Config</button>
     </div>
-    <button id="saveBtn">Save Configuration</button>
-    <div id="status" class="status"></div>
+
+    <div id="statusArea" class="status-area"></div>
   </div>
+
   <script src="options.js"></script>
 </body>
 </html>

@@ -193,14 +193,13 @@ async function callLLM(messages, signal) {
     throw new Error("No API key configured. Please click settings (⚙️).");
   }
 
-  const isAnthropic = activeConfig.provider.toLowerCase().includes('anthropic');
+  // Ensure baseUrl doesn't have a trailing slash before appending
+  let baseUrl = activeConfig.baseUrl || 'https://api.openai.com/v1';
+  baseUrl = baseUrl.replace(/\/$/, '');
 
-  if (isAnthropic) {
-    throw new Error("Anthropic support requires Claude API format implementation. Please use OpenAI compatible endpoint for now.");
-  }
+  const endpoint = `${baseUrl}/chat/completions`;
 
-  const baseUrl = activeConfig.baseUrl || 'https://api.openai.com/v1';
-  const res = await fetch(`${baseUrl}/chat/completions`, {
+  const res = await fetch(endpoint, {
     method: 'POST',
     signal: signal,
     headers: {
