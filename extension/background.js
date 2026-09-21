@@ -174,6 +174,27 @@ const browserTools = {
     await chrome.debugger.sendCommand({ tabId: tab.id }, 'Input.dispatchKeyEvent', { type: 'rawKeyDown', windowsVirtualKeyCode: keyInfo.windowsVirtualKeyCode, nativeVirtualKeyCode: keyInfo.nativeVirtualKeyCode, key: keyInfo.key, code: keyInfo.code });
     await chrome.debugger.sendCommand({ tabId: tab.id }, 'Input.dispatchKeyEvent', { type: 'keyUp', key: keyInfo.key, code: keyInfo.code });
     return `Pressed ${key}`;
+  },
+
+  browser_get_page_content: async () => {
+    if (stopRequested) throw new Error("Stopped");
+    let tab = await getActiveTab();
+    const content = await runScript(tab.id, () => document.body.innerText);
+    // Truncate to a reasonable amount to avoid massive token usage
+    return (content || "").substring(0, 10000);
+  },
+
+  browser_execute_script: async ({ script }) => {
+    if (stopRequested) throw new Error("Stopped");
+    let tab = await getActiveTab();
+    const result = await runScript(tab.id, (code) => {
+      try {
+        return eval(code);
+      } catch (e) {
+        return e.toString();
+      }
+    }, [script]);
+    return `Script executed. Result: ${result}`;
   }
 };
 
@@ -182,7 +203,9 @@ const openAiTools = [
   { type: "function", function: { name: "browser_get_elements", description: "Get interactive elements on screen (returns JSON with x/y coords)", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "browser_trusted_click", description: "Click at x/y coordinates", parameters: { type: "object", properties: { x: { type: "number" }, y: { type: "number" } }, required: ["x", "y"] } } },
   { type: "function", function: { name: "browser_trusted_type", description: "Type text (make sure you clicked an input first)", parameters: { type: "object", properties: { text: { type: "string" } }, required: ["text"] } } },
-  { type: "function", function: { name: "browser_trusted_press_key", description: "Press a key like 'Enter'", parameters: { type: "object", properties: { key: { type: "string" } }, required: ["key"] } } }
+  { type: "function", function: { name: "browser_trusted_press_key", description: "Press a key like 'Enter'", parameters: { type: "object", properties: { key: { type: "string" } }, required: ["key"] } } },
+  { type: "function", function: { name: "browser_get_page_content", description: "Get all readable text content from the current page", parameters: { type: "object", properties: {} } } },
+  { type: "function", function: { name: "browser_execute_script", description: "Execute custom Javascript on the page (e.g., to inject dark mode or scroll)", parameters: { type: "object", properties: { script: { type: "string" } }, required: ["script"] } } }
 ];
 
 // -----------------------------------------------------------------------------

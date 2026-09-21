@@ -134,6 +134,16 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.runtime.openOptionsPage();
   });
 
+  // Quick Actions binding
+  document.querySelectorAll('.qa-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (isProcessing) return;
+      const prompt = btn.getAttribute('data-prompt');
+      userInput.value = prompt;
+      handleAction();
+    });
+  });
+
   function setProcessing(processing) {
     isProcessing = processing;
     if (processing) {

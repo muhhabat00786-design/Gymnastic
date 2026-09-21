@@ -32,16 +32,92 @@
       background-color: var(--bg);
       color: var(--text);
       overflow: hidden;
-
-      /* Stylish animated background */
-      background: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.1), transparent 40%),
-                  radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.1), transparent 40%);
-      animation: pulseBg 12s ease-in-out infinite alternate;
+      position: relative;
     }
 
-    @keyframes pulseBg {
-      0% { background-position: 0% 0%; }
-      100% { background-position: 100% 100%; }
+    /* Hyper-Dynamic Video-Type Futuristic Background */
+    .bg-anim {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: var(--bg);
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .bg-anim::before, .bg-anim::after, .bg-glow-3 {
+      content: '';
+      position: absolute;
+      width: 150vw;
+      height: 150vh;
+      top: -25vh;
+      left: -25vw;
+      background-blend-mode: screen;
+      animation: complexWave 15s infinite alternate cubic-bezier(0.45, 0.05, 0.55, 0.95);
+      filter: blur(60px);
+      opacity: 0.6;
+    }
+
+    .bg-anim::before {
+      background: radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.6), transparent 40%),
+                  radial-gradient(circle at 70% 70%, rgba(6, 182, 212, 0.4), transparent 50%);
+      animation-duration: 20s;
+      animation-direction: alternate-reverse;
+    }
+
+    .bg-anim::after {
+      background: radial-gradient(circle at 80% 20%, rgba(236, 72, 153, 0.4), transparent 40%),
+                  radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.5), transparent 50%);
+      animation-duration: 25s;
+      animation-delay: -5s;
+    }
+
+    .bg-glow-3 {
+      background: conic-gradient(from 180deg at 50% 50%, rgba(139, 92, 246, 0.2) 0deg, rgba(6, 182, 212, 0.2) 180deg, rgba(236, 72, 153, 0.2) 360deg);
+      animation: rotateGlow 30s linear infinite;
+      mix-blend-mode: overlay;
+      opacity: 0.3;
+    }
+
+    /* Hexagon Data Grid Overlay (Cyberpunk vibe) */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+      z-index: 1;
+      pointer-events: none;
+      perspective: 1000px;
+      transform-origin: center top;
+      animation: gridScroll 10s linear infinite;
+      opacity: 0.7;
+    }
+
+    @keyframes complexWave {
+      0% { transform: scale(1) translate(0, 0) rotate(0deg); }
+      33% { transform: scale(1.1) translate(5%, -5%) rotate(5deg); }
+      66% { transform: scale(0.9) translate(-5%, 5%) rotate(-5deg); }
+      100% { transform: scale(1.2) translate(2%, 2%) rotate(2deg); }
+    }
+
+    @keyframes rotateGlow {
+      from { transform: rotate(0deg) scale(1.5); }
+      to { transform: rotate(360deg) scale(1.5); }
+    }
+
+    @keyframes gridScroll {
+      0% { background-position: 0 0; }
+      100% { background-position: 0 30px; }
+    }
+
+    /* Ensure other elements are above background */
+    .header, .main-wrapper, .input-area {
+      z-index: 1;
     }
 
     /* Top Navigation */
@@ -415,6 +491,42 @@
       to { transform: rotate(360deg); }
     }
 
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      padding: 0 20px 12px 20px;
+      overflow-x: auto;
+      scrollbar-width: none; /* Firefox */
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      flex-shrink: 0;
+      z-index: 5;
+    }
+
+    .quick-actions::-webkit-scrollbar {
+      display: none;
+    }
+
+    .qa-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .qa-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
     /* Scrollbar styling */
     ::-webkit-scrollbar {
       width: 6px;
@@ -434,6 +546,11 @@
 </head>
 <body>
 
+  <div class="bg-anim">
+    <div class="bg-glow-3"></div>
+  </div>
+  <div class="grid-overlay"></div>
+
   <div class="header">
     <div class="title-area">
       <button class="menu-btn" id="menuBtn">
@@ -444,6 +561,12 @@
     <button class="settings-btn" id="openSettings" title="Settings">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
     </button>
+  </div>
+
+  <div class="quick-actions" id="quickActions">
+    <button class="qa-btn" data-prompt="Summarize the text content of this page.">Summarize</button>
+    <button class="qa-btn" data-prompt="Extract and list all important links on this page.">Find Links</button>
+    <button class="qa-btn" data-prompt="Inject a script to change the background to dark mode (#121212) and text to white.">Dark Mode</button>
   </div>
 
   <div class="main-wrapper">
