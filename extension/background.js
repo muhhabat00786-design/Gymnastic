@@ -84,11 +84,19 @@ const keyMap = {
 };
 
 const browserTools = {
-  browser_navigate: async ({ url }) => {
+  browser_navigate: async ({ url, new_tab = false }) => {
     if (stopRequested) throw new Error("Stopped");
-    let tab = await getActiveTab();
+    let tab;
     if (!url.startsWith('http')) url = 'https://' + url;
-    await chrome.tabs.update(tab.id, { url });
+
+    if (new_tab) {
+      tab = await chrome.tabs.create({ url, active: true });
+      boundTabId = tab.id; // Bind agent to the new tab
+    } else {
+      tab = await getActiveTab();
+      await chrome.tabs.update(tab.id, { url });
+    }
+
     await ensureDebuggerAttached(tab.id);
 
     // Fast resolve on DOMContentLoaded
@@ -222,7 +230,7 @@ const browserTools = {
 };
 
 const openAiTools = [
-  { type: "function", function: { name: "browser_navigate", description: "Navigate to a URL", parameters: { type: "object", properties: { url: { type: "string" } }, required: ["url"] } } },
+  { type: "function", function: { name: "browser_navigate", description: "Navigate to a URL, optionally in a new tab", parameters: { type: "object", properties: { url: { type: "string" }, new_tab: { type: "boolean", description: "Set to true to open the URL in a completely new tab instead of the current one." } }, required: ["url"] } } },
   { type: "function", function: { name: "browser_list_tabs", description: "List all open browser tabs to find their IDs and URLs", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "browser_close_tab", description: "Close a specific browser tab by ID", parameters: { type: "object", properties: { tab_id: { type: "number" } }, required: ["tab_id"] } } },
   { type: "function", function: { name: "browser_get_elements", description: "Get interactive elements on screen (returns JSON with x/y coords)", parameters: { type: "object", properties: {} } } },
