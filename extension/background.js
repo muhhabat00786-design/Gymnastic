@@ -1,10 +1,14 @@
 // Self-contained Autonomous Browser Agent Background Script
-const SYSTEM_PROMPT = `You are a world-class browser automation AI. Your job is to fulfill the user's request by calling available tools.
-You have access to a real Chrome browser. Act quickly. If asked to go to a site, use browser_navigate. If asked to play a song or search, use a combination of navigating, typing, and clicking.
-To find things to click, you can use browser_get_elements to see what's on the page.
+const SYSTEM_PROMPT = `You are a world-class, highly intelligent browser automation AI. Your goal is to completely and accurately fulfill the user's request by controlling a real Chrome browser.
 
-IMPORTANT: When typing into search boxes, it's often best to press 'Enter' afterwards using browser_trusted_press_key('Enter').
-`;
+CRITICAL DIRECTIVES:
+1. FOCUS & EFFICIENCY: Do not waste steps. Have a clear chain-of-thought for every action. Do not get stuck in loops.
+2. VERIFY BEFORE ACTING: If you are waiting for a page to load, a video to generate, or a search to complete, use \`browser_get_elements\` or \`browser_get_page_content\` to check the status. DO NOT blindly click if the element isn't there yet.
+3. SCROLLING & VISIBILITY: If you cannot find what you are looking for, the element might be off-screen. Use \`browser_execute_script\` to scroll down (e.g., \`window.scrollBy(0, 500)\`), then check elements again.
+4. TYPING: After typing into an input field using \`browser_trusted_type\`, you MUST press Enter using \`browser_trusted_press_key('Enter')\` or click a visible search/submit button.
+5. COMPLEX TASKS (e.g., Video Generation, AI Tools): These sites often take 10-60 seconds to process. If you click "Generate", you MUST periodically check the page content (every few steps) to see if it finished before declaring the task complete. Do not assume immediate success.
+
+Think step-by-step. Analyze the results of your previous tool call before deciding on the next action.`;
 
 let activeConfig = null;
 let currentAbortController = null;
@@ -149,21 +153,44 @@ const browserTools = {
       const els = document.querySelectorAll(selectors);
       els.forEach(el => {
          const rect = el.getBoundingClientRect();
-         if (rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden') {
+
+         // Only include elements that are visibly on screen (or close to it) and not hidden
+         const isVisible = rect.width > 0 && rect.height > 0 &&
+                           rect.top < window.innerHeight + 500 && rect.bottom > -500 &&
+                           window.getComputedStyle(el).visibility !== 'hidden' &&
+                           window.getComputedStyle(el).display !== 'none';
+
+         if (isVisible) {
+           let text = (el.innerText || el.value || el.placeholder || el.getAttribute('aria-label') || el.title || '').trim().substring(0, 60);
+           // Try to find text in children if empty
+           if (!text && el.children.length > 0) {
+              text = el.textContent.trim().substring(0, 60);
+           }
+
+           // Replace lots of spaces with single space
+           text = text.replace(/\\s+/g, ' ');
+
+           let className = '';
+           try {
+              if (el.getAttribute('class')) className = '.' + el.getAttribute('class').split(' ').join('.');
+           } catch(e) {}
+
            items.push({
              tag: el.tagName.toLowerCase(),
-             text: (el.innerText || el.value || el.placeholder || el.getAttribute('aria-label') || '').trim().substring(0, 50),
-             selector: \`\${el.tagName.toLowerCase()}\${el.id ? '#'+el.id : ''}\${el.getAttribute('class') ? '.'+el.getAttribute('class').split(' ').join('.') : ''}\`,
-             x: rect.left + rect.width / 2,
-             y: rect.top + rect.height / 2,
+             text: text,
+             selector: \`\${el.tagName.toLowerCase()}\${el.id ? '#'+el.id : ''}\${className}\`,
+             x: Math.round(rect.left + rect.width / 2),
+             y: Math.round(rect.top + rect.height / 2),
            });
          }
       });
-      return items;
+
+      // Filter out elements that have no text and are just generic divs/spans masquerading as buttons unless they have clear aria labels
+      return items.filter(item => item.text || ['input', 'textarea', 'select'].includes(item.tag));
     })()`;
     const elements = await runScriptCDP(tab.id, script);
-    // Truncate to avoid massive context
-    return JSON.stringify((elements || []).slice(0, 40));
+    // Return up to 150 items to give the agent a much better view of the page
+    return JSON.stringify((elements || []).slice(0, 150));
   },
 
   browser_trusted_click: async ({ x, y }) => {
@@ -226,11 +253,36 @@ const browserTools = {
     if (stopRequested) throw new Error("Stopped");
     await chrome.tabs.remove(tab_id);
     return `Closed tab ${tab_id}`;
+  },
+
+  browser_scroll: async ({ amount_y }) => {
+    if (stopRequested) throw new Error("Stopped");
+    let tab = await getActiveTab();
+    await runScriptCDP(tab.id, `window.scrollBy({top: ${amount_y}, behavior: 'smooth'})`);
+    // Wait for scroll to finish
+    await new Promise(r => setTimeout(r, 800));
+    return `Scrolled ${amount_y} pixels vertically.`;
+  },
+
+  browser_get_current_state: async () => {
+    if (stopRequested) throw new Error("Stopped");
+    let tab = await getActiveTab();
+    const state = await runScriptCDP(tab.id, `JSON.stringify({
+       url: window.location.href,
+       title: document.title,
+       scrollY: window.scrollY,
+       innerHeight: window.innerHeight,
+       scrollHeight: document.body.scrollHeight,
+       readyState: document.readyState
+    })`);
+    return state;
   }
 };
 
 const openAiTools = [
   { type: "function", function: { name: "browser_navigate", description: "Navigate to a URL, optionally in a new tab", parameters: { type: "object", properties: { url: { type: "string" }, new_tab: { type: "boolean", description: "Set to true to open the URL in a completely new tab instead of the current one." } }, required: ["url"] } } },
+  { type: "function", function: { name: "browser_scroll", description: "Scroll the page vertically. Positive amount scrolls down, negative scrolls up.", parameters: { type: "object", properties: { amount_y: { type: "number", description: "Pixels to scroll, e.g., 500 or -500" } }, required: ["amount_y"] } } },
+  { type: "function", function: { name: "browser_get_current_state", description: "Get the current URL, page title, scroll position, and document readyState.", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "browser_list_tabs", description: "List all open browser tabs to find their IDs and URLs", parameters: { type: "object", properties: {} } } },
   { type: "function", function: { name: "browser_close_tab", description: "Close a specific browser tab by ID", parameters: { type: "object", properties: { tab_id: { type: "number" } }, required: ["tab_id"] } } },
   { type: "function", function: { name: "browser_get_elements", description: "Get interactive elements on screen (returns JSON with x/y coords)", parameters: { type: "object", properties: {} } } },
