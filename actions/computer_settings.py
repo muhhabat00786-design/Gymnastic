@@ -252,6 +252,24 @@ def close_app(target_app: str = None):
             import difflib
             target_lower = target_app.lower()
 
+            # Common aliases
+            aliases = {
+                "task manager": "taskmgr",
+                "chrome": "chrome",
+                "google chrome": "chrome",
+                "firefox": "firefox",
+                "edge": "msedge",
+                "safari": "safari",
+                "word": "winword",
+                "excel": "excel",
+                "powerpoint": "powerpnt",
+                "notepad": "notepad",
+                "explorer": "explorer",
+                "file explorer": "explorer"
+            }
+            if target_lower in aliases:
+                target_lower = aliases[target_lower]
+
             # Find closest process matches safely using exact matches or difflib with a strict cutoff
             procs = []
             for proc in psutil.process_iter(['name']):
@@ -270,7 +288,7 @@ def close_app(target_app: str = None):
 
             # Fallback to fuzzy match if exact match fails
             if not matches:
-                matches = difflib.get_close_matches(target_lower, proc_names, n=1, cutoff=0.85)
+                matches = difflib.get_close_matches(target_lower, proc_names, n=1, cutoff=0.7)
 
             killed_any = False
             if matches:
@@ -285,10 +303,11 @@ def close_app(target_app: str = None):
 
             if killed_any:
                 return f"Closed {target_app}"
+            return f"Could not find a running process matching '{target_app}' to close."
         except ImportError:
             pass
 
-    # Fallback to blind shortcut if no specific target or psutil fails
+    # Fallback to blind shortcut if no specific target
     if _OS == "Darwin": pyautogui.hotkey("command", "q")
     else:               pyautogui.hotkey("alt", "f4")
 
@@ -920,6 +939,39 @@ def computer_settings(
 
     if action in ("close_app", "close_window"):
         if value and isinstance(value, str):
+            # Check if this process is ourselves before killing it
+            import os
+            try:
+                import psutil
+                current_pid = os.getpid()
+                current_proc = psutil.Process(current_pid)
+                my_names = [current_proc.name().lower(), "python.exe", "python", "pythonw.exe", "pythonw"]
+
+                target_lower = value.lower()
+                aliases = {
+                    "task manager": "taskmgr",
+                    "chrome": "chrome",
+                    "google chrome": "chrome",
+                    "firefox": "firefox",
+                    "edge": "msedge",
+                    "safari": "safari",
+                    "word": "winword",
+                    "excel": "excel",
+                    "powerpoint": "powerpnt",
+                    "notepad": "notepad",
+                    "explorer": "explorer",
+                    "file explorer": "explorer"
+                }
+                if target_lower in aliases:
+                    target_lower = aliases[target_lower]
+
+                for my_name in my_names:
+                    my_name_clean = my_name.replace(".exe", "")
+                    if target_lower == my_name_clean or target_lower == my_name:
+                        return f"Cannot close {value}, that is me!"
+
+            except Exception:
+                pass
             result = func(value)
             if result:
                 return result
