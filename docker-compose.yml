@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  ubuntu-desktop:
+    build:
+      context: ./docker-ubuntu-desktop
+    container_name: ubuntu-desktop
+    ports:
+      - "6080:6080"
+      - "5901:5901"
+    restart: unless-stopped
