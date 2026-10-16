@@ -1,0 +1,11 @@
+FROM akarita/docker-ubuntu-desktop
+
+USER root
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -y && apt-get install -y arc-theme papirus-icon-theme
+
+RUN mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml/
+COPY xsettings.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+COPY xfwm4.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
+
+CMD bash -c "vncserver -localhost yes -SecurityTypes None -geometry 1280x720 --I-KNOW-THIS-IS-INSECURE && websockify -D --web=/usr/share/novnc/ 6080 localhost:5901 && sleep infinity"
