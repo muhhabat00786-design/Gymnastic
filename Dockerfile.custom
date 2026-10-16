@@ -2,10 +2,18 @@ FROM akarita/docker-ubuntu-desktop
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update -y && apt-get install -y arc-theme papirus-icon-theme
+
+RUN apt-get update -y && apt-get install --no-install-recommends -y arc-theme papirus-icon-theme xrdp && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /root/.config/xfce4/xfconf/xfce-perchannel-xml/
 COPY xsettings.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
 COPY xfwm4.xml /root/.config/xfce4/xfconf/xfce-perchannel-xml/xfwm4.xml
 
-CMD bash -c "vncserver -localhost yes -SecurityTypes None -geometry 1280x720 --I-KNOW-THIS-IS-INSECURE && websockify -D --web=/usr/share/novnc/ 6080 localhost:5901 && sleep infinity"
+RUN cp -r /root/.config /etc/skel/
+
+CMD bash -c "if id -u \${RDP_USER} >/dev/null 2>&1; then echo 'User exists'; else useradd -s /bin/bash \${RDP_USER} && echo \"\${RDP_USER}:\${RDP_PASSWORD}\" | chpasswd && adduser \${RDP_USER} sudo; fi && \
+    cp -rT /etc/skel /home/\${RDP_USER}/ && chown -R \${RDP_USER}:\${RDP_USER} /home/\${RDP_USER} && \
+    echo 'xfce4-session' > /home/\${RDP_USER}/.xsession && chown \${RDP_USER}:\${RDP_USER} /home/\${RDP_USER}/.xsession && \
+    su - \${RDP_USER} -c 'vncserver -localhost yes -SecurityTypes None -geometry 1280x720 --I-KNOW-THIS-IS-INSECURE' && \
+    service xrdp start && \
+    websockify -D --web=/usr/share/novnc/ 6080 localhost:5901 && sleep infinity"
